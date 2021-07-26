@@ -1,0 +1,56 @@
+Resources:
+  ALBSG:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      VpcId: !ImportValue acc-vpc1
+      GroupDescription: Inbound HTTP
+      SecurityGroupIngress: 
+        - Description: 'Allow HTTP IPv4 IN'
+          IpProtocol: tcp
+          FromPort: '80'
+          ToPort: '80'
+          CidrIp: '0.0.0.0/0'
+  AccALB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties: 
+      IpAddressType: "ipv4"
+      Scheme: "internet-facing"
+      SecurityGroups: 
+        - !Ref ALBSG
+      Subnets: 
+        - !ImportValue acc-vpc1-subnet-weba
+        - !ImportValue acc-vpc1-subnet-webb
+      Tags: 
+        - Key: Name
+          Value: !Join [ '', [ 'Acc-ALB-', !Ref 'AWS::StackName' ] ]
+      Type: "application"
+  AccALBListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref AccALBTG
+      LoadBalancerArn: !Ref AccALB
+      Port: 80
+      Protocol: HTTP
+  AccALBTG:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      HealthCheckIntervalSeconds: 30
+      HealthCheckPath: /healthcheck.html
+      HealthCheckTimeoutSeconds: 5
+      Port: 80
+      Protocol: HTTP
+      UnhealthyThresholdCount: 5
+      VpcId: !ImportValue acc-vpc1
+Outputs:
+  ALBDNS:
+    Description: DNS Name of the LoadBalancer
+    Value: !GetAtt AccALB.DNSName
+    Export:
+      Name: acc-vpc1-EC2-alb-dnsname
+  EC2URL:
+    Description: FinalEC2 EC2URL
+    Value: !Join [ '', [ 'http://', !GetAtt AccALB.DNSName ] ]
+    Export:
+      Name: acc-vpc1-EC2-alb-url

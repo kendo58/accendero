@@ -1,0 +1,10 @@
+Resources:
+    S3Bucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        AccessControl: PublicRead
+
+      DeletionPolicy: Retain
+                
+        Bucket: !Ref S3Bucket
+

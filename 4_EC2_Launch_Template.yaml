@@ -1,0 +1,48 @@
+Parameters:
+  LatestAmiId:
+    Description: AMI for Instance (default is latest AmaLinux2)
+    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
+    Default: '/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2'
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: "Name of an existing SSH Keypair to access the instance"
+    Default: Acc
+  SSMKey:
+    Description: Name of parameter store which contains the json configuration of CWAgent.
+    Type : String
+    Default: AmazonCloudWatch-linux
+  InstanceType:
+    Description: Size of instance, default is t2.micro. You can type in the size of instance you need
+    Type : String
+    Default: "t2.micro"
+
+Resources:
+  EC2LaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateData:
+        KeyName: !Ref KeyName
+        InstanceType: !Ref InstanceType
+        ImageId: !Ref LatestAmiId
+        IamInstanceProfile:
+          Name: !ImportValue acc-vpc1-EC2-instanceprofile
+        SecurityGroupIds:
+          - !ImportValue acc-vpc1-default-instance-sg
+        UserData:
+          Fn::Base64: !Sub |
+            #!/bin/bash -xe
+            yum -y update
+            
+
+            #  - Install WebServer
+            yum -y install httpd
+            
+            systemctl enable httpd
+            systemctl start httpd
+
+Outputs:
+  AccEC2LaunchTemplate:
+    Description: Acc EC2 Launch Template
+    Value: !Ref EC2LaunchTemplate
+    Export:
+      Name: acc-vpc1-EC2-launchtemplate
